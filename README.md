@@ -2,7 +2,7 @@ ARDroneZeroP
 ============
 Processing game for Parrot ARDrone 2.0
 
-Strongly based in the [ODC - Open Drone Control] http://www.opendronecontrol.org/
+Strongly based in the [ODC - Open Drone Control](http://www.opendronecontrol.org/) 
 
 ## Collaborators
 
