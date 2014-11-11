@@ -15,7 +15,7 @@ import org.opendronecontrol.platforms.ardrone.ARDrone;
 import org.opendronecontrol.spatial.Vec3;
 import scala.collection.immutable.List;
 
-final int gMAX_NUM_OF_ENEMY = 100;
+final int gMAX_NUM_OF_ENEMY = 3;
 final int gMAX_TIME = 20;
 
 ARDrone drone;  // this creates our drone class
@@ -161,10 +161,11 @@ void reset(){
   score = new ScoreManager(0);
   time = new Timer(20);
   tCircle = new TargetCircle(width / 2.0, height / 2.0, 100);//center of image
-  objs = new Arraylist<Object>();
-  for(int i = 0 ; i < gMAX_NUM_OF_ENEMY ; ++i){
-    obj.add( new Object() );
-  }
+  objs = new ArrayList<Object>();
+  supplementEnemy( gMAX_NUM_OF_ENEMY );
+  //  for(int i = 0 ; i < gMAX_NUM_OF_ENEMY ; ++i){
+  //    objs.add( new Object(this) );
+  //  }
 }
 
 void gameover(){
@@ -196,8 +197,11 @@ void keyPressed(){
 
 }
 
-void supplementEnemy(final int numOfSupplemnt){
+void supplementEnemy(final int numOfSupplement){
   for(int i = 0 ; i < numOfSupplement ; ++i){
-    objs.add( new Object() );
+    objs.add( new Object(this) );
+  }
+  for(Object obj : objs){
+    obj.drawObj();
   }
 }
