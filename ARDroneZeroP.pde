@@ -22,8 +22,7 @@ ARDrone drone;  // this creates our drone class
 BufferedImage bimg;  // a 2D image from JAVA returns current video frame
  
 PImage img;
-Vec3 gyro; // storing gyroscope data
-boolean flying; 
+DroneState state;
 float droneX;
 float droneY;
 float droneZ;
@@ -42,7 +41,7 @@ void setup(){
   //setup drone
   drone = new ARDrone("192.168.1.1"); // default IP is 192.168.1.1
   drone.connect();
-  gyro = new Vec3(0.0,0.0,0.0);
+  state = new DroneState();
   
   //setup game component
   background(255, 255, 255);
@@ -52,8 +51,14 @@ void setup(){
 
 void draw(){
   ///////////////////
+  //input
+  ///////////////////
+  state.update(drone);
+
+  ///////////////////
   //draw
   ///////////////////
+  
   if( drone.hasVideo()){
     bimg = drone.video().getFrame(); // on each draw call get the current video frame
     if( bimg != null ){
@@ -69,14 +74,7 @@ void draw(){
   score.drawScore(0, 40);
   textAlign(RIGHT);
   time.drawTime(width, 60);
-  //battery 
-  //     println( "velocity: " + drone.sensors("velocity").value )
-  //     println( "gyroscope: " + drone.sensors("gyroscope").value )
-  //     println( "altimeter: " + drone.sensors("altimeter").value )
-  //     println( "battery: " + drone.sensors("battery").value )
   textAlign(RIGHT);
-  text( "Battery : " + drone.sensors("battery").value, width, 40);
- 
   
   /*
    ARMarkerClassObject : amo
@@ -85,23 +83,10 @@ void draw(){
    }
    
   */
-   
-  ///////////////////
-  //input
-  ///////////////////
-  if (drone.hasSensors()){
-    flying = drone.sensors().get("flying").bool();
-  }
-
-  if( drone.hasSensors()){
-    gyro = drone.sensors().get("gyroscope").vec();
-    //println("gyro x: " + round(gyro.x()) + " gyro y: " + round(gyro.y()) + " gyro z: " + round(gyro.z()));  
-  }
-  //fill((gyro.y()+180)/360*255,0,60);
-  //ellipse(gyro.z()*10 + width/2, gyro.x()*10 + height/2, 80, 80);
+  state.displayBattery(width, 40);
     
   
-  if(flying==true){
+  if(state.flying){
      //if(mouseX < width/2){
      if(key == 'a'){  
       droneX = 0.1;
@@ -201,7 +186,7 @@ void gameover(){
 void keyPressed(){
   //takeoff anf release
   if (key =='u'){
-    if(flying==false){
+    if(!state.flying){
       drone.takeOff(); 
     } else{
      drone.land(); 
