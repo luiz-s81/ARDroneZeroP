@@ -47,9 +47,10 @@ class TargetCircle{
   }
   
   boolean insideTargetCircle(Object o){
-    float sqrDist =   ( o.mPos.x - mPos.x ) * ( o.mPos.x - mPos.x )
-                    + ( o.mPos.y - mPos.y ) * ( o.mPos.y - mPos.y );
-    return ( sqrDist  <=  mRadius * mRadius ) ? true : false;
+    //float sqrDist =   ( o.mPos.x - mPos.x ) * ( o.mPos.x - mPos.x )
+    //                + ( o.mPos.y - mPos.y ) * ( o.mPos.y - mPos.y );
+    //return ( sqrDist  <=  mRadius * mRadius ) ? true : false;
+    return mPos.dist(o.mPos) <= mRadius;
   }
 };
 

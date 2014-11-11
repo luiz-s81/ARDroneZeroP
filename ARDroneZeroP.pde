@@ -45,7 +45,7 @@ void setup(){
   
   //setup game component
   background(255, 255, 255);
-  framerate(60);
+  frameRate(60);
   reset();
 }
 
