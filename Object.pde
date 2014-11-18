@@ -63,6 +63,23 @@ class Object{/* This class interit of ARMarker class*/
     return (int)( ( mLife / mMaxLife ) * 255.0 );
   }
 
+void drawObj2(float x, float y){
+      //if HP is reduced, the object is becoming transparent.
+      //It's an idea that user can understand easily that how much does this object remain it's hit points.
+      // tint( mLife2Alpha() );
+      stroke(mColor);
+      strokeWeight(1);
+      
+      // position of the 3D model
+      pushMatrix();
+      translate(x, y, 0.0);
+      rotateY(PI);
+      mObj.draw();
+      popMatrix();
+      
+      noStroke();
+  }
+  
+ 
+
 };
-
-
