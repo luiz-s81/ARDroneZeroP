@@ -1,3 +1,4 @@
+
 /*
   ARDroneZeroP - Processing game for Parrot ARDrone 2.0 - https://github.com/lgmsampaio/ARDroneZeroP
   Collaborators: 
@@ -19,8 +20,8 @@ import jp.nyatla.nyar4psg.*;
 final int gMAX_NUM_OF_ENEMY = 3;
 final int gMAX_TIME = 20;
 
-final String camPara = "D:/Luiz/Dropbox/My Documents/Processing/libraries/NyAR4psg/data/camera_para.dat";
-final String patternPath = "D:/Luiz/Dropbox/My Documents/Processing/libraries/NyAR4psg/patternMaker/examples/ARToolKit_Patterns";
+final String camPara = "C:/Users/sakaikazuki/Documents/Processing/libraries/NyAR4psg/data/camera_para.dat";//"D:/sakaikazuki/My Documents/Processing/libraries/NyAR4psg/data/camera_para.dat";
+final String patternPath = "C:/Users/sakaikazuki/Documents/Processing/libraries/NyAR4psg/patternMaker/examples/ARToolKit_Patterns";////"D:/Luiz/Dropbox/My Documents/Processing/libraries/NyAR4psg/patternMaker/examples/ARToolKit_Patterns";
 
 ARDrone drone;  // this creates our drone class
 BufferedImage bimg;  // a 2D image from JAVA returns current video frame
@@ -72,13 +73,13 @@ void setup(){
   }
 }
 
-///////////////////
-//draw
-///////////////////
+
 void draw(){
  
   state.update(drone);
-  
+  ///////////////////
+  //draw
+  ///////////////////
   if( drone.hasVideo()){
     bimg = drone.video().getFrame(); // on each draw call get the current video frame
     if( bimg != null ){
@@ -108,10 +109,11 @@ void draw(){
    for(int i = 0 ; i < amo.size() ; ++i){
      draw3DObject( amo[i].id );
    }
-   
   */
   state.displayBattery(width, 40);
-  
+  ///////////////////
+  // input
+  ///////////////////
   if(state.flying){
      //if(mouseX < width/2){
      if(key == 'a'){  
@@ -130,6 +132,7 @@ void draw(){
       droneZ = -0.1; 
      }
    }
+
    
    if( time.mTime <= 0){
      gameover();
@@ -154,6 +157,7 @@ void draw(){
   //update
   ///////////////////
   drone.move(droneX,droneY,droneZ,droneYaw);
+ 
     
   
   // I comented the following lines because the enemies are rendered based on markers
@@ -219,7 +223,7 @@ void keyPressed(){
     }
   }
 }
-
+/*
 void supplementEnemy(final int numOfSupplement){
   for(int i = 0 ; i < numOfSupplement ; ++i){
     objs.add( new Object(this) );
@@ -228,7 +232,7 @@ void supplementEnemy(final int numOfSupplement){
     obj.drawObj();
   }
 }
-
+*/
 String[] loadPatternFilenames(String path){
   File folder = new File(path);
   FilenameFilter pattFilter = new FilenameFilter(){
@@ -244,19 +248,27 @@ void drawEnemies(){
   //textSize(10);
   //noStroke();
   //scale(displayScale);
-  
+                                    
   for(int i = 0; i < numMarkers; i++){
     
     if(nya.isExistMarker(i)){
      
-      PVector[] pos2d = nya.getMarkerVertex2D(i);
-      
-      // The object pos2d has the marker 4 points.
-      // Now we are using just one
-      //for(int j = 0; j < pos2d.length; j++){
-       
-        Object obj = new Object(this);
+      Object obj = new Object(this);
+      if( keyPressed  ){
+        if(key == 'c'){
+          pushMatrix();//don't forget this!
+          setMatrix( nya.getMarkerMatrix(i) );
+          obj.drawObj3();
+          popMatrix();//don't forget this!
+        }
+      }else{
+        //older version(not correct)
+        PVector[] pos2d = nya.getMarkerVertex2D(i);
+        // The object pos2d has the marker 4 points.
+        // Now we are using just one
+        //for(int j = 0; j < pos2d.length; j++){
         obj.drawObj2(pos2d[0].x, pos2d[0].y);
+
         
         /*
         String s = "(" + int(pos2d[j].x) + "," + int(pos2d[j].y) + ")";
@@ -267,8 +279,12 @@ void drawEnemies(){
         fill(255, 0, 0);
         ellipse(pos2d[j].x, pos2d[j].y, 5, 5);
         */
-      //}
+        //}
+      }
     }  
   }
+ 
   
 }
+
+
