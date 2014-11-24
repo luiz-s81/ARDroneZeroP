@@ -10,6 +10,23 @@
   
   Strongly based in the [ODC - Open Drone Control] http://www.opendronecontrol.org/
 */
+
+//////////////////////////////////////////////////////
+// [Manual]
+// 'u' : take off / land
+// 'x' : shoot
+// [How to play] 2014/11/24
+// *** detect marker and shoot 3d ghost(object), then you got points! ***
+// If ghost HP is 0, the ghost die. A few seconds later, the ghost revive.
+// 1st you should detect marker, 2nd, you capture the marker in therget circle, and shoot(press 'x'), after that you can get points.
+// All ghost has HP, and HP is decreased by shooting.
+// If HP is 0, the ghost has 'died';
+// One marker has one ghost.
+// If the marker has dead ghost, you can watch 3D X mark on the marker instead of 3D ghost.
+// You can't get any points from X mark(because the ghost has already die).
+/////////////////////////////////////////////////////
+
+
 import java.io.*;
 import java.awt.image.BufferedImage;
 import org.opendronecontrol.platforms.ardrone.ARDrone;
@@ -17,7 +34,7 @@ import org.opendronecontrol.spatial.Vec3;
 import scala.collection.immutable.List;
 import jp.nyatla.nyar4psg.*;
 
-final int gMAX_NUM_OF_ENEMY = 3;
+
 final int gMAX_TIME = 20;
 
 final String camPara = "C:/Users/sakaikazuki/Documents/Processing/libraries/NyAR4psg/data/camera_para.dat";//"D:/sakaikazuki/My Documents/Processing/libraries/NyAR4psg/data/camera_para.dat";
@@ -37,19 +54,23 @@ int arWidth = 640;
 int arHeight = 480;
 int numMarkers = 10;
 
+int gMAX_NUM_OF_ENEMY;//this is always same value of numMarkers.
+
 //for the AR Markers
 MultiMarker nya;
 color[] colors = new color[numMarkers];
 float[] scaler = new float[numMarkers];
 
 //for game component
-ArrayList<Object> objs;
+ArrayList<Object> objs;//object array
 TargetCircle tCircle;
 ScoreManager score;
 Timer time;
+boolean gHasShoot;//does user shoot?
 
 void setup(){
   size(arWidth, arHeight, P3D);
+  time = new Timer(1);
   
   //setup drone
   drone = new ARDrone("192.168.1.1"); // default IP is 192.168.1.1
@@ -71,6 +92,8 @@ void setup(){
     //colors[i] = color(random(255), random(255), random(255), 160);
     scaler[i] = random(0.5, 1.9);
   }
+  
+ 
 }
 
 
@@ -104,12 +127,6 @@ void draw(){
   time.drawTime(width, 60);
   textAlign(RIGHT);
   
-  /*
-   ARMarkerClassObject : amo
-   for(int i = 0 ; i < amo.size() ; ++i){
-     draw3DObject( amo[i].id );
-   }
-  */
   state.displayBattery(width, 40);
   ///////////////////
   // input
@@ -132,60 +149,52 @@ void draw(){
       droneZ = -0.1; 
      }
    }
-
-   
-   if( time.mTime <= 0){
-     gameover();
-     return;//return to startpoint of draw()
-   }
-   
-   //AR Marker detection
-   /*
-   ARMarkerClassObject : amo
-   amo = ARMargerDetection();
-   */
-   
-   /*
-   //shoot!
-   if(key == 's'){//shoot!
-     drawShootEffect();
-   }
-   */
    
 
   ///////////////////
   //update
   ///////////////////
   drone.move(droneX,droneY,droneZ,droneYaw);
- 
+  
+  if( time.mTime <= 0){
+     gameover();
+     return;//return to startpoint of draw()
+  }
+  
+  //shoot
+  if(gHasShoot){
+    AttackByDrone(tCircle);
+    gHasShoot = false;
+  }
     
   
   // I comented the following lines because the enemies are rendered based on markers
   //supplementEnemy( gMAX_NUM_OF_ENEMY - objs.size() );
   
-  //object move
+  //recovery object
   for(int i = 0 ; i < objs.size() ; ++i){
-    //Object tmp = objs.get(i);
     objs.get(i).recovery(0.05);//recover enemy's HP   
   }
   
-
-  //hit detection
-  /*
-  for(int i = 0 ; i < amo.size() ; ++i){//for all object which the marker is detected
-    if(amo[i] is shooted){
-      object got damages.
-      if(object hp is under 0){
-        object is removed;
-        score.add(10);
-      }
-    }
+  //revive object
+  for(int i = 0 ; i < objs.size() ; ++i){
+    if( objs.get(i).reviveObj() ){
+      //DEBUG STATEMENT
+      textAlign(CENTER);
+      text("object revive", width /2, height / 2);
+    }   
   }
-  */
-    
+  
+  time.countDown(1);
+  
+  //DEBUG STATEMENT
+  for(int i = 0 ; i < objs.size() ; ++i){
+    objs.get(i).drawObjectState();
+  }
 }
 
 void reset(){
+  gMAX_NUM_OF_ENEMY = numMarkers;
   score = new ScoreManager(0);
   time = new Timer(20);
   tCircle = new TargetCircle(width / 2.0, height / 2.0, 100);//center of image
@@ -195,13 +204,19 @@ void reset(){
   //  for(int i = 0 ; i < gMAX_NUM_OF_ENEMY ; ++i){
   //    objs.add( new Object(this) );
   //  }
+  for(int i = 0 ; i < objs.size()  ; ++i){
+    objs.remove(i);//all object removed
+  }  
+  for(int i = 0 ; i < gMAX_NUM_OF_ENEMY ; ++i){
+    objs.add( new Object(this, i) );
+  }
 }
 
 void gameover(){
   textAlign(LEFT);
   score.drawScore(0, 40);
   for(int i = 0 ; i < objs.size()  ; ++i){
-    objs.remove(i);//all object removed
+    objs.get(i).isAlive = false;
   }  
   textAlign(CENTER);
   text("GAME OVER", width /2, height / 2);
@@ -221,7 +236,10 @@ void keyPressed(){
     } else{
      drone.land(); 
     }
+  }else if(key == 'x'){
+    gHasShoot = true;
   }
+    
 }
 /*
 void supplementEnemy(final int numOfSupplement){
@@ -243,48 +261,83 @@ String[] loadPatternFilenames(String path){
   return folder.list(pattFilter);
 }
 
-void drawEnemies(){
-  //textAlign(LEFT, TOP);
-  //textSize(10);
-  //noStroke();
-  //scale(displayScale);
-                                    
+void drawEnemies(){                             
   for(int i = 0; i < numMarkers; i++){
-    
-    if(nya.isExistMarker(i)){
-     
-      Object obj = new Object(this);
-      if( keyPressed  ){
-        if(key == 'c'){
-          pushMatrix();//don't forget this!
+    /*if(objs.get(i).isAlive && nya.isExistMarker(i)){
+          pushMatrix();
           setMatrix( nya.getMarkerMatrix(i) );
-          obj.drawObj3();
-          popMatrix();//don't forget this!
-        }
+          objs.get(i).drawObj3();
+          popMatrix();
+    }  
+    */
+    if(nya.isExistMarker(i)){
+      if(objs.get(i).isAlive){
+        pushMatrix();
+        setMatrix( nya.getMarkerMatrix(i) );
+        objs.get(i).drawObj3();
+        popMatrix();
       }else{
-        //older version(not correct)
+        //draw X mark on the marker instead of dead object
         PVector[] pos2d = nya.getMarkerVertex2D(i);
-        // The object pos2d has the marker 4 points.
-        // Now we are using just one
-        //for(int j = 0; j < pos2d.length; j++){
-        obj.drawObj2(pos2d[0].x, pos2d[0].y);
-
-        
-        /*
-        String s = "(" + int(pos2d[j].x) + "," + int(pos2d[j].y) + ")";
-        fill(255);
-        rect(pos2d[j].x, pos2d[j].y, textWidth(s) + 3, textAscent() + textDescent() + 3);
-        fill(0);
-        text(s, pos2d[j].x + 2, pos2d[j].y + 2);
-        fill(255, 0, 0);
-        ellipse(pos2d[j].x, pos2d[j].y, 5, 5);
-        */
-        //}
+        pushMatrix();
+        setMatrix( nya.getMarkerMatrix(i) );
+        drawX();
+        popMatrix();
       }
     }  
   }
- 
-  
 }
 
+void drawX(){
+  fill( 255, 0, 0);
+  stroke( 255, 255, 255);//yellow
+  strokeWeight(2);
+  
+  pushMatrix();
+  
+  pushMatrix();
+  translate(0, -30/2, 0);
+  rotateY( radians(45) );
+  translate(0, 30 / 2, 0);
+  box(120, 30, 30);
+  popMatrix();
+  
+  pushMatrix();
+  translate(0, -30/2, 0);
+  rotateY( radians(-45) );
+  translate(0, 30 / 2, 0);
+  box(120, 30, 30);
+  popMatrix();
+  
+  popMatrix();
+}
 
+void AttackByDrone(TargetCircle tCircle){
+  tCircle.attackEffect();
+  
+  PVector centerPos = new PVector();//calc center of marker in drone's image coordinate
+  for(int i = 0; i < numMarkers; i++){
+    if(nya.isExistMarker(i) && objs.get(i).isAlive){
+      PVector[] pos2d = nya.getMarkerVertex2D(i);
+      centerPos.set(0.0f, 0.0f);
+      centerPos.add( pos2d[0]); 
+      centerPos.add( pos2d[1]); 
+      centerPos.add( pos2d[2]); 
+      centerPos.add( pos2d[3]);
+      centerPos.mult( 0.25 );// divide 4.0;
+      if( tCircle.insideTargetCircle( centerPos )){
+        if( objs.get(i).damage(10) ){
+          score.add(10);
+        }else{//object HP is 0 ==> delete
+          //any effect?
+          //DEBUG
+          /*
+          textAlign(CENTER);
+          text("GREAT!", width /2, height / 2);
+          */
+        }
+      }
+    }
+      
+  }
+}  
