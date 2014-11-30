@@ -281,7 +281,7 @@ void drawEnemies(){
       if(objs.get(i).isAlive){
         pushMatrix();
         setMatrix( nya.getMarkerMatrix(i) );
-        objs.get(i).drawObj3();
+        objs.get(i).drawObj();
         popMatrix();
       }else{
         //draw X mark on the marker instead of dead object
