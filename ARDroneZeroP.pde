@@ -29,6 +29,7 @@
 
 import java.io.*;
 import java.awt.image.BufferedImage;
+import java.awt.*;
 import org.opendronecontrol.platforms.ardrone.ARDrone;
 import org.opendronecontrol.spatial.Vec3;
 import scala.collection.immutable.List;
@@ -41,15 +42,8 @@ String dataPath;
 final String patternPath = "ARToolKit_Patterns";
 final String camPara = "camera_para.dat";
 
-ARDrone drone;  // this creates our drone class
-BufferedImage bimg;  // a 2D image from JAVA returns current video frame
- 
+Drone drone;  // this creates our drone class
 PImage img;
-DroneState state;
-float droneX;
-float droneY;
-float droneZ;
-float droneYaw;
 
 int arWidth = 640;
 int arHeight = 480;
@@ -76,13 +70,11 @@ void setup(){
   time = new Timer(1);
   
   //setup drone
-  drone = new ARDrone("192.168.1.1"); // default IP is 192.168.1.1
-  drone.connect();
-  state = new DroneState();
-  
+  drone = new Drone("192.168.1.1"); // default IP is 192.168.1.1
+
   //setup game component
   background(255, 255, 255);
-  frameRate(60);
+  frameRate(30);
   reset();
   
   //setup AR marker detection
@@ -101,24 +93,16 @@ void setup(){
 
 
 void draw(){
- 
-  state.update(drone);
+
   ///////////////////
   //draw
   ///////////////////
-  if( drone.hasVideo()){
-    bimg = drone.video().getFrame(); // on each draw call get the current video frame
-    if( bimg != null ){
-      img = new PImage(bimg.getWidth(), bimg.getHeight(), PConstants.ARGB); // create a new processing image to hold the current video frame
-      bimg.getRGB(0, 0, img.width, img.height, img.pixels, 0, img.width); // fill the img with buffered frame data from drone
-      img.updatePixels();
-      img.resize(640,480);
-      //image(img,0,0); // display the video frame
-      // The function "set" does the same thing as "image" (display the camera image), but with better performance
-      set(0, 0, img);
-      nya.detect(img);
-      drawEnemies();
-     }
+  drone.update();
+  img = drone.getVideo();
+  if( img != null ){
+    set(0, 0, img);
+    nya.detect(img);
+    drawEnemies();
   }
   
   tCircle.drawCircle();
@@ -129,36 +113,12 @@ void draw(){
   
   time.drawTime(width, 60);
   textAlign(RIGHT);
-  
-  state.displayBattery(width, 40);
-  ///////////////////
-  // input
-  ///////////////////
-  if(state.flying){
-     //if(mouseX < width/2){
-     if(key == 'a'){  
-      droneX = 0.1;
-     }
-     if(key == 'd'){
-      droneX = -0.1; 
-     }
-     
-     //if(mouseY < height/2){
-    if(key == 'w'){   
-      droneZ = 0.1;
-    // } else {
-    }
-    if(key == 's')  {
-      droneZ = -0.1; 
-     }
-   }
-   
+
+  drone.displayBattery(width, 40);
 
   ///////////////////
   //update
   ///////////////////
-  drone.move(droneX,droneY,droneZ,droneYaw);
-  
   if( time.mTime <= 0){
      gameover();
      return;//return to startpoint of draw()
@@ -232,18 +192,16 @@ void gameover(){
 }
 
 void keyPressed(){
-  //takeoff anf release
-  if (key =='u'){
-    if(!state.flying){
-      drone.takeOff(); 
-    } else{
-     drone.land(); 
-    }
-  }else if(key == 'x'){
+  drone.keyPressed(keyCode);
+  if(key == 'x'){
     gHasShoot = true;
   }
-    
 }
+
+void keyReleased(){
+  drone.keyReleased(keyCode);
+}
+
 /*
 void supplementEnemy(final int numOfSupplement){
   for(int i = 0 ; i < numOfSupplement ; ++i){
