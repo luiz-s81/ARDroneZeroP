@@ -37,8 +37,9 @@ import jp.nyatla.nyar4psg.*;
 
 final int gMAX_TIME = 20;
 
-final String camPara = "C:/Users/sakaikazuki/Documents/Processing/libraries/NyAR4psg/data/camera_para.dat";//"D:/sakaikazuki/My Documents/Processing/libraries/NyAR4psg/data/camera_para.dat";
-final String patternPath = "C:/Users/sakaikazuki/Documents/Processing/libraries/NyAR4psg/patternMaker/examples/ARToolKit_Patterns";////"D:/Luiz/Dropbox/My Documents/Processing/libraries/NyAR4psg/patternMaker/examples/ARToolKit_Patterns";
+String dataPath;
+final String patternPath = "ARToolKit_Patterns";
+final String camPara = "camera_para.dat";
 
 ARDrone drone;  // this creates our drone class
 BufferedImage bimg;  // a 2D image from JAVA returns current video frame
@@ -69,6 +70,8 @@ Timer time;
 boolean gHasShoot;//does user shoot?
 
 void setup(){
+  dataPath = getDataPath();
+
   size(arWidth, arHeight, P3D);
   time = new Timer(1);
   
@@ -83,12 +86,12 @@ void setup(){
   reset();
   
   //setup AR marker detection
-  nya = new MultiMarker(this, arWidth, arHeight, camPara, NyAR4PsgConfig.CONFIG_DEFAULT);
+  nya = new MultiMarker(this, arWidth, arHeight, dataPath+camPara, NyAR4PsgConfig.CONFIG_DEFAULT);
   nya.setLostDelay(1);
-  String[] patterns = loadPatternFilenames(patternPath);
-  
-  for(int i=0; i < numMarkers; i++){ 
-    nya.addARMarker(patternPath + "/" + patterns[i], 80);
+  String[] patterns = loadPatternFilenames(dataPath+patternPath);
+
+  for(int i=0; i < numMarkers; i++){
+    nya.addARMarker(dataPath + patternPath + "/" + patterns[i], 80);
     //colors[i] = color(random(255), random(255), random(255), 160);
     scaler[i] = random(0.5, 1.9);
   }
@@ -261,7 +264,11 @@ String[] loadPatternFilenames(String path){
   return folder.list(pattFilter);
 }
 
-void drawEnemies(){                             
+String getDataPath() {
+  return dataPath("").replace("\\","/") + "/";
+}
+
+void drawEnemies(){
   for(int i = 0; i < numMarkers; i++){
     /*if(objs.get(i).isAlive && nya.isExistMarker(i)){
           pushMatrix();
