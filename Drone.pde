@@ -133,7 +133,6 @@ class Drone extends ARDrone{
 
   boolean setVideo() {
     video_available = false;
-    println("Has video? " + super.hasVideo() );
     if ( super.hasVideo() ) {
       raw_graphic.drawImage(super.video().getFrame(), 0, 0, 640, 480, null);
       if (raw_video != null) {
