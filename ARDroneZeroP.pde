@@ -21,281 +21,77 @@
  */
 
 import java.io.*;
-import java.awt.image.BufferedImage;
-import java.awt.*;
-import org.opendronecontrol.platforms.ardrone.ARDrone;
-import org.opendronecontrol.spatial.Vec3;
-import scala.collection.immutable.List;
-import jp.nyatla.nyar4psg.*;
 
-
-final int gMAX_TIME = 20;
-
-String dataPath;
-final String patternPath = "ARToolKit_Patterns";
-final String camPara = "camera_para.dat";
-
-Drone drone;  // this creates our drone class
-PImage img;
-
-int arWidth = 640;
-int arHeight = 480;
-int numMarkers = 10;
-
-int gMAX_NUM_OF_ENEMY;//this is always same value of numMarkers.
-
-//for the AR Markers
-MultiMarker nya;
-color[] colors = new color[numMarkers];
-float[] scaler = new float[numMarkers];
-
-//for game component
-ArrayList<Object> objs;//object array
-TargetCircle tCircle;
-ScoreManager score;
-Timer time;
-boolean gHasShoot;//does user shoot?
+Drone drone;
+GameComponent game;
+Enemies enemies;
 
 void setup(){
-  dataPath = getDataPath();
+  // setup canvas
+  size(640, 480, P3D);
+  frameRate(20);
 
-  size(arWidth, arHeight, P3D);
-  time = new Timer(1);
-  
-  //setup drone
-  drone = new Drone("192.168.1.1"); // default IP is 192.168.1.1
-
-  //setup game component
-  background(255, 255, 255);
-  frameRate(30);
-  reset();
-  
-  //setup AR marker detection
-  nya = new MultiMarker(this, arWidth, arHeight, dataPath+camPara, NyAR4PsgConfig.CONFIG_DEFAULT);
-  nya.setLostDelay(1);
-  String[] patterns = loadPatternFilenames(dataPath+patternPath);
-
-  for(int i=0; i < numMarkers; i++){
-    nya.addARMarker(dataPath + patternPath + "/" + patterns[i], 80);
-    //colors[i] = color(random(255), random(255), random(255), 160);
-    scaler[i] = random(0.5, 1.9);
-  }
-  
- 
+  // setup components
+  enemies = new Enemies(this);
+  game = new GameComponent();
+  drone = new Drone();
 }
 
 
 void draw(){
-
-  ///////////////////
-  //draw
-  ///////////////////
+  // update drone and game state
   drone.update();
-  img = drone.getVideo();
-  if( img != null ){
-    set(0, 0, img);
-    nya.detect(img);
-    drawEnemies();
-  }
-  
-  tCircle.drawCircle();
-  textAlign(LEFT);
-  
-  score.drawScore(0, 40);
-  textAlign(RIGHT);
-  
-  time.drawTime(width, 60);
-  textAlign(RIGHT);
+  game.update();
 
-  drone.displayBattery(width, 40);
-
-  ///////////////////
-  //update
-  ///////////////////
-  if( time.mTime <= 0){
-     gameover();
-     return;//return to startpoint of draw()
-  }
-  
-  //shoot
-  if(gHasShoot){
-    AttackByDrone(tCircle);
-    gHasShoot = false;
-  }
-    
-  
-  // I comented the following lines because the enemies are rendered based on markers
-  //supplementEnemy( gMAX_NUM_OF_ENEMY - objs.size() );
-  
-  //recovery object
-  for(int i = 0 ; i < objs.size() ; ++i){
-    objs.get(i).recovery(0.05);//recover enemy's HP   
-  }
-  
-  //revive object
-  for(int i = 0 ; i < objs.size() ; ++i){
-    if( objs.get(i).reviveObj() ){
-      //DEBUG STATEMENT
-      textAlign(CENTER);
-      text("object revive", width /2, height / 2);
-    }   
-  }
-  
-  time.countDown(1);
-  
-  //DEBUG STATEMENT
-  for(int i = 0 ; i < objs.size() ; ++i){
-    objs.get(i).drawObjectState();
-  }
-}
-
-void reset(){
-  gMAX_NUM_OF_ENEMY = numMarkers;
-  score = new ScoreManager(0);
-  time = new Timer(20);
-  tCircle = new TargetCircle(width / 2.0, height / 2.0, 100);//center of image
-  objs = new ArrayList<Object>();
-  // I comented the following lines because the enemies are rendered based on markers
-  //supplementEnemy( gMAX_NUM_OF_ENEMY );
-  //  for(int i = 0 ; i < gMAX_NUM_OF_ENEMY ; ++i){
-  //    objs.add( new Object(this) );
-  //  }
-  for(int i = 0 ; i < objs.size()  ; ++i){
-    objs.remove(i);//all object removed
-  }  
-  for(int i = 0 ; i < gMAX_NUM_OF_ENEMY ; ++i){
-    objs.add( new Object(this, i) );
-  }
-}
-
-void gameover(){
-  textAlign(LEFT);
-  score.drawScore(0, 40);
-  for(int i = 0 ; i < objs.size()  ; ++i){
-    objs.get(i).isAlive = false;
-  }  
-  textAlign(CENTER);
-  text("GAME OVER", width /2, height / 2);
-  text("Press 'q' to restart", width /2, height / 2 +50);
-  if( keyPressed  ){
-    if(key == 'q'){
-      reset();
+  // game state is strongly depend on drone's state
+  //  - no video -> drone is not ready yet  (CASE 1)
+  //  - landed   -> game is over            (CASE 2)
+  if( drone.isVideoAvailable() ){
+    // Display the video
+    set(0, 0, drone.getVideo());
+    if (game.isOnGoing()) {
+      if(drone.isJustLanded()){ // CASE 1
+        game.end();             //  -> end the game
+      } else {
+        // This is normal case.
+        // Shoot the enemy and reflect the score
+        int earned_score = enemies.update(drone.getVideo(), game.circle);
+        enemies.display();
+        game.scoreUp(earned_score);
+      }
     }
+  } else {                      // CASE 2
+    game.abort();               //  -> cannot start the game
   }
+  if (game.isReady()) {
+    enemies.refresh();// reset the enemies' state
+  }
+
+  // Display the game controller
+  game.display();
+  // Display the battery state
+  drone.displayBattery();
 }
 
 void keyPressed(){
-  drone.keyPressed(keyCode);
-  if(key == 'x'){
-    gHasShoot = true;
+  if(keyCode == ESC) {//Emergency quit
+    drone.land();
+  }
+  game.keyPressed(keyCode);
+  if (game.isReady() || game.isOnGoing()) {
+    drone.keyPressed(keyCode);
+  }
+  if (game.isOnGoing()) {
+    enemies.keyPressed(keyCode);
   }
 }
 
 void keyReleased(){
-  drone.keyReleased(keyCode);
-}
-
-/*
-void supplementEnemy(final int numOfSupplement){
-  for(int i = 0 ; i < numOfSupplement ; ++i){
-    objs.add( new Object(this) );
+  game.keyReleased(keyCode);
+  if (game.isReady() || game.isOnGoing()) {
+    drone.keyReleased(keyCode);
   }
-  for(Object obj : objs){
-    obj.drawObj();
+  if (game.isOnGoing()) {
+    enemies.keyReleased(keyCode);
   }
 }
-*/
-String[] loadPatternFilenames(String path){
-  File folder = new File(path);
-  FilenameFilter pattFilter = new FilenameFilter(){
-    public boolean accept(File dir, String name){
-      return name.toLowerCase().endsWith(".patt");
-    }
-  };
-  return folder.list(pattFilter);
-}
-
-String getDataPath() {
-  return dataPath("").replace("\\","/") + "/";
-}
-
-void drawEnemies(){
-  for(int i = 0; i < numMarkers; i++){
-    /*if(objs.get(i).isAlive && nya.isExistMarker(i)){
-          pushMatrix();
-          setMatrix( nya.getMarkerMatrix(i) );
-          objs.get(i).drawObj3();
-          popMatrix();
-    }  
-    */
-    if(nya.isExistMarker(i)){
-      if(objs.get(i).isAlive){
-        pushMatrix();
-        setMatrix( nya.getMarkerMatrix(i) );
-        objs.get(i).drawObj();
-        popMatrix();
-      }else{
-        //draw X mark on the marker instead of dead object
-        PVector[] pos2d = nya.getMarkerVertex2D(i);
-        pushMatrix();
-        setMatrix( nya.getMarkerMatrix(i) );
-        drawX();
-        popMatrix();
-      }
-    }  
-  }
-}
-
-void drawX(){
-  fill( 255, 0, 0);
-  stroke( 255, 255, 255);//yellow
-  strokeWeight(2);
-  
-  pushMatrix();
-  
-  pushMatrix();
-  translate(0, -30/2, 0);
-  rotateY( radians(45) );
-  translate(0, 30 / 2, 0);
-  box(120, 30, 30);
-  popMatrix();
-  
-  pushMatrix();
-  translate(0, -30/2, 0);
-  rotateY( radians(-45) );
-  translate(0, 30 / 2, 0);
-  box(120, 30, 30);
-  popMatrix();
-  
-  popMatrix();
-}
-
-void AttackByDrone(TargetCircle tCircle){
-  tCircle.attackEffect();
-  
-  PVector centerPos = new PVector();//calc center of marker in drone's image coordinate
-  for(int i = 0; i < numMarkers; i++){
-    if(nya.isExistMarker(i) && objs.get(i).isAlive){
-      PVector[] pos2d = nya.getMarkerVertex2D(i);
-      centerPos.set(0.0f, 0.0f);
-      centerPos.add( pos2d[0]); 
-      centerPos.add( pos2d[1]); 
-      centerPos.add( pos2d[2]); 
-      centerPos.add( pos2d[3]);
-      centerPos.mult( 0.25 );// divide 4.0;
-      if( tCircle.insideTargetCircle( centerPos )){
-        if( objs.get(i).damage(10) ){
-          score.add(10);
-        }else{//object HP is 0 ==> delete
-          //any effect?
-          //DEBUG
-          /*
-          textAlign(CENTER);
-          text("GREAT!", width /2, height / 2);
-          */
-        }
-      }
-    }
-      
-  }
-}  
