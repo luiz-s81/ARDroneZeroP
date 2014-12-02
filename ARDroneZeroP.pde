@@ -1,31 +1,24 @@
-
 /*
-  ARDroneZeroP - Processing game for Parrot ARDrone 2.0 - https://github.com/lgmsampaio/ARDroneZeroP
-  Collaborators: 
-  Luiz Gustavo Moreira Sampaio - lgmsampaio@gmail.com 
-  Kazuki Sakai
-  Shinichi Tamura
-  Koudai Fujii
-  With the kind consultancy of Christopher Michael Yap and the supervision of professor Shigeru Kashihara.
-  
-  Strongly based in the [ODC - Open Drone Control] http://www.opendronecontrol.org/
-*/
-
-//////////////////////////////////////////////////////
-// [Manual]
-// 'u' : take off / land
-// 'x' : shoot
-// [How to play] 2014/11/24
-// *** detect marker and shoot 3d ghost(object), then you got points! ***
-// If ghost HP is 0, the ghost die. A few seconds later, the ghost revive.
-// 1st you should detect marker, 2nd, you capture the marker in therget circle, and shoot(press 'x'), after that you can get points.
-// All ghost has HP, and HP is decreased by shooting.
-// If HP is 0, the ghost has 'died';
-// One marker has one ghost.
-// If the marker has dead ghost, you can watch 3D X mark on the marker instead of 3D ghost.
-// You can't get any points from X mark(because the ghost has already die).
-/////////////////////////////////////////////////////
-
+ * ARDroneZeroP - Processing game for Parrot ARDrone 2.0
+ * ---------------------------------------------------------
+ * The MIT Licence
+ * Copyright (c) 2014 Luiz Gustavo M. Sampaio
+ * https://github.com/lgmsampaio/ARDroneZeroP
+ *
+ * Collaborators:
+ * - Luiz Gustavo Moreira Sampaio - lgmsampaio@gmail.com
+ * - Kazuki Sakai
+ * - Shinichi Tamura
+ * - Koudai Fujii
+ * With the kind consultancy of Christopher Michael Yap
+ * and the supervision of professor Shigeru Kashihara.
+ *
+ * Strongly based on:
+ * - ODC - Open Drone Control
+ *     http://www.opendronecontrol.org/
+ * - NyAR4psg - NyARTookit for Processing
+ *     http://nyatla.jp/nyartoolkit/wp/?page_id=357
+ */
 
 import java.io.*;
 import java.awt.image.BufferedImage;
